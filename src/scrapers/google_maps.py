@@ -91,7 +91,7 @@ class GoogleMapsScraper(BaseScraper):
         if "/sorry/" in url:
             raise RuntimeError("Google blocked the automated browser (CAPTCHA/unusual traffic).")
             
-        searchbox = page.locator("#searchboxinput, input[aria-label*='Search'][role='combobox']").first
+        searchbox = page.locator("#searchboxinput, input.searchboxinput, input[name='q'], input[aria-label*='Search']").first
         try:
             await searchbox.wait_for(state="visible", timeout=20_000)
         except PlaywrightTimeoutError:

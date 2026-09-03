@@ -23,6 +23,17 @@ def scrape(
     dry_run: bool = typer.Option(False, "--dry-run", help="Validate and show planned job without running")
 ):
     """Start a new discovery and enrichment job."""
+    from src.utils.autocorrect import autocorrect
+    
+    # Auto-correct query and location to fix typos
+    corrected_query = autocorrect(query) if query else query
+    corrected_location = autocorrect(location) if location else location
+    
+    if corrected_query != query or corrected_location != location:
+        console.print(f"[bold yellow]✨ Auto-corrected search terms to:[/bold yellow] '{corrected_query}' in '{corrected_location}'")
+        query = corrected_query
+        location = corrected_location
+        
     console.print(f"[bold blue]Starting Scrape Job[/bold blue]")
     console.print(f"Query: [green]{query}[/green]")
     console.print(f"Location: [green]{location}[/green]")
