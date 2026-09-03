@@ -1,6 +1,5 @@
 import httpx
-import json
-from urllib.parse import urlencode
+from urllib.parse import quote_plus
 
 def autocorrect(text: str) -> str:
     """
@@ -11,7 +10,7 @@ def autocorrect(text: str) -> str:
         return text
         
     try:
-        url = f"https://suggestqueries.google.com/complete/search?client=firefox&q={urlencode({'': text})[1:]}"
+        url = f"https://suggestqueries.google.com/complete/search?client=firefox&q={quote_plus(text)}"
         resp = httpx.get(url, timeout=5.0)
         
         if resp.status_code == 200:
@@ -24,7 +23,7 @@ def autocorrect(text: str) -> str:
                 if len(best_match.split()) <= len(text.split()) + 1:
                     return best_match.title()
                     
-    except Exception:
+    except httpx.RequestError:
         pass
         
     return text.title()
