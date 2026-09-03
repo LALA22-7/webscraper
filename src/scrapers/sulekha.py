@@ -53,8 +53,10 @@ class SulekhaScraper(BaseScraper):
                     raise RuntimeError(f"Sulekha blocked or failed with status {resp.status_code}")
                     
                 soup = BeautifulSoup(resp.text, 'html.parser')
-                listings = soup.find_all("li", class_="list-item")
-                
+                listings = soup.find_all("div", class_="flex flex-col rounded-lg border shadow-sm bg-white")
+                if not listings:
+                    listings = soup.find_all("div", class_=lambda c: c and "rounded-lg" in c and "shadow-sm" in c)
+                    
                 if not listings:
                     break
                     
@@ -62,7 +64,7 @@ class SulekhaScraper(BaseScraper):
                     if yielded_count >= target:
                         break
                         
-                    name_tag = listing.find("h3")
+                    name_tag = listing.find("h3") or listing.find("h2") or listing.find("h4")
                     if not name_tag:
                         continue
                         
@@ -77,6 +79,10 @@ class SulekhaScraper(BaseScraper):
                     phone_tag = listing.find(attrs={"data-vno": True})
                     if phone_tag:
                         phone = normalize_phone(phone_tag["data-vno"])
+                    else:
+                        phone_tag = listing.find("a", href=lambda h: h and h.startswith("tel:"))
+                        if phone_tag:
+                            phone = normalize_phone(phone_tag["href"])
                         
                     # Extract address
                     address = None

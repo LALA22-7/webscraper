@@ -1,83 +1,115 @@
 import asyncio
-import httpx
-from bs4 import BeautifulSoup
 from typing import AsyncGenerator
 from urllib.parse import urlparse
 
+from playwright.async_api import async_playwright, Page, Browser, BrowserContext, TimeoutError as PlaywrightTimeoutError
+
 from src.models.source_result import SourceResult
 from src.scrapers.base import BaseScraper
-from src.processing.normalizer import normalize_phone
 
 class DuckDuckGoScraper(BaseScraper):
-    """Fallback search discovery engine using DuckDuckGo HTML version."""
+    """Fallback search discovery engine using DuckDuckGo HTML version via Playwright."""
     
     def __init__(self, headless: bool = True):
         self.headless = headless
-        self.client = None
+        self._playwright = None
+        self._browser: Browser = None
+        self._context: BrowserContext = None
         
     @property
     def name(self) -> str:
         return "Search Discovery"
         
     async def initialize(self) -> None:
-        self.client = httpx.AsyncClient(
-            headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            },
-            timeout=15.0
+        self._playwright = await async_playwright().start()
+        self._browser = await self._playwright.chromium.launch(
+            headless=self.headless,
+            args=[
+                '--disable-blink-features=AutomationControlled',
+                '--disable-dev-shm-usage',
+                '--no-sandbox',
+                '--disable-web-security'
+            ]
+        )
+        self._context = await self._browser.new_context(
+            locale="en-US",
+            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         )
         
     async def scrape(self, query: str, location: str, target: int) -> AsyncGenerator[SourceResult, None]:
-        if not self.client:
+        if not self._context:
             await self.initialize()
             
         yielded_count = 0
-        
-        # e.g., "gyms in Noida official website"
         search_query = f"{query} in {location} official website"
         
+        page = await self._context.new_page()
         try:
-            resp = await self.client.post(
-                "https://html.duckduckgo.com/html/", 
-                data={"q": search_query}
-            )
+            # Go to DDG
+            await page.goto("https://duckduckgo.com/", wait_until="domcontentloaded")
+            searchbox = page.locator("input[name='q']").first
+            await searchbox.fill(search_query)
+            await searchbox.press("Enter")
+            await page.wait_for_selector("article[data-testid='result']", timeout=15000)
             
-            if resp.status_code != 200:
-                raise RuntimeError(f"DuckDuckGo blocked or failed with {resp.status_code}")
-                
-            soup = BeautifulSoup(resp.text, 'html.parser')
-            results = soup.find_all("a", class_="result__url")
-            
-            for result in results:
+            while yielded_count < target:
+                results = await page.locator("article[data-testid='result']").all()
+                for result in results:
+                    if yielded_count >= target:
+                        break
+                        
+                    link = result.locator("a[data-testid='result-title-a']").first
+                    if not await link.count():
+                        continue
+                        
+                    href = await link.get_attribute("href")
+                    if not href or "duckduckgo.com" in href:
+                        continue
+                        
+                    if href.startswith("//"):
+                        href = "https:" + href
+                        
+                    domain = urlparse(href).netloc.replace("www.", "")
+                    
+                    if any(x in domain for x in ["justdial", "sulekha", "indiamart", "google", "facebook", "instagram"]):
+                        continue
+                        
+                    yield SourceResult(
+                        source_name=self.name,
+                        source_url=href,
+                        business_name=domain.split('.')[0].title(),
+                        website=href,
+                        city=location
+                    )
+                    yielded_count += 1
+                    
                 if yielded_count >= target:
                     break
                     
-                href = result.get("href")
-                if not href or "duckduckgo.com" in href:
-                    continue
+                # Next page (infinite scroll usually, but sometimes there's a button)
+                more_btn = page.locator("#more-results").first
+                if await more_btn.count() and await more_btn.is_visible():
+                    await more_btn.click()
+                    await asyncio.sleep(2)
+                else:
+                    await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                    await asyncio.sleep(2)
                     
-                if href.startswith("//"):
-                    href = "https:" + href
+                # Wait for more results to load
+                try:
+                    await page.wait_for_selector("article[data-testid='result']", timeout=10000)
+                except PlaywrightTimeoutError:
+                    break
                     
-                # We assume the domain name could be the business name candidate
-                domain = urlparse(href).netloc.replace("www.", "")
-                
-                # Filter out obvious directories
-                if any(x in domain for x in ["justdial", "sulekha", "indiamart", "google", "facebook", "instagram"]):
-                    continue
-                    
-                yield SourceResult(
-                    source_name=self.name,
-                    source_url=href,
-                    business_name=domain.split('.')[0].title(),
-                    website=href,
-                    city=location
-                )
-                yielded_count += 1
-                
         except Exception as e:
             raise RuntimeError(f"Search Discovery failed: {e}")
+        finally:
+            await page.close()
             
     async def shutdown(self) -> None:
-        if self.client:
-            await self.client.aclose()
+        if self._context:
+            await self._context.close()
+        if self._browser:
+            await self._browser.close()
+        if self._playwright:
+            await self._playwright.stop()

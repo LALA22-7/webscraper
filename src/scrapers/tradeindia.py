@@ -37,13 +37,18 @@ class TradeIndiaScraper(BaseScraper):
                 raise RuntimeError(f"TradeIndia failed with {resp.status_code}")
                 
             soup = BeautifulSoup(resp.text, 'html.parser')
-            listings = soup.find_all("div", class_="card-body")
-            
+            listings = soup.find_all("div", class_="card d-flex flex-column justify-content-between")
+            if not listings:
+                listings = soup.find_all("div", class_="card")
+                
             for listing in listings:
                 if yielded_count >= target:
                     break
                     
                 name_tag = listing.find("a", class_="company-name")
+                if not name_tag:
+                    name_tag = listing.find("h2") or listing.find("h3") or listing.find("a")
+                    
                 if not name_tag:
                     continue
                     
