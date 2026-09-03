@@ -7,7 +7,7 @@ from src.models.job import Job
 from src.models.email import Email, EmailConfidence
 
 class SQLiteManager:
-    def __init__(self, db_path: str = "leads.db"):
+    def __init__(self, db_path: str = "data/leads.db"):
         self.db_path = db_path
         self._init_db()
         

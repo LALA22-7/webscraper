@@ -86,7 +86,7 @@ def scrape(
         # Auto export
         safe_query = query.replace(" ", "_").lower()
         safe_loc = location.replace(" ", "_").lower()
-        output_file = f"leads_{safe_query}_{safe_loc}.csv"
+        output_file = f"results/leads_{safe_query}_{safe_loc}.csv"
         
         from src.storage.sqlite import SQLiteManager
         db = SQLiteManager()
@@ -115,7 +115,7 @@ def resume(job_id: str):
 def export(
     job_id: str = typer.Argument(..., help="Job ID to export"),
     format: str = typer.Option("csv", "--format", "-f", help="Output format (csv)"),
-    output: str = typer.Option("leads.csv", "--output", "-o", help="Output file path")
+    output: str = typer.Option("results/leads.csv", "--output", "-o", help="Output file path")
 ):
     """Export leads from a specific job."""
     from src.storage.sqlite import SQLiteManager

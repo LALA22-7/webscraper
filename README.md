@@ -1,82 +1,61 @@
-# Production-Grade Multi-Source Business Lead Discovery & Email Enrichment Platform
+# Multi-Source Business Scraper & Enricher
 
-## Overview
+A highly resilient, multi-source Python CLI application that discovers local business leads and enriches them with contact information (emails, phones, websites).
 
-A professional, asynchronous, and modular CLI application that orchestrates the discovery and enrichment of business leads across multiple sources (Google Maps, Justdial). It implements feature-based entity resolution for deduplication, an async crawler for email extraction from business domains, and a robust checkpointing system backed by SQLite.
-
-## Architecture
-
-```
-User
-  |
-  v
-CLI (Typer/Rich)
-  |
-  v
-Job Manager (SQLite checkpointing)
-  |
-  v
-Discovery Orchestrator
-  |
-  +---- Google Maps (Playwright)
-  +---- Justdial (Playwright)
-  |
-  v
-Normalization & Deduplication
-  |
-  v
-Website Crawler & Email Extractor
-  |
-  v
-Lead Database (SQLite)
-```
+Unlike simple scrapers that rely on a single directory, this tool aggregates leads across multiple engines and uses Playwright headless browsers to gracefully bypass bot-blocks and CAPTCHAs.
 
 ## Features
-
-- **Multi-source discovery**: Google Maps, Justdial.
-- **Auto-scroll/pagination**: Asynchronous dynamic scrolling with Playwright.
-- **Deduplication**: Feature-based entity resolution across sources (Phone, Domain, Name).
-- **Website enrichment**: Async crawling of discovered domains using `httpx`.
-- **Email extraction**: Regex-based email extraction with false-positive filtering and provenance tracking.
-- **Checkpoint/resume**: SQLite-backed continuous persistence (prevents data loss).
-- **CLI**: Rich, beautiful CLI progress tracking via Typer.
-- **Source fallback**: Graceful degradation if a source is blocked.
+- **Multi-Source Discovery Engine**: Automatically cycles through Google Maps, Justdial, IndiaMART, TradeIndia, Sulekha, and DuckDuckGo.
+- **Block Resilience**: If one source times out or triggers a CAPTCHA, the orchestrator seamlessly falls back to the next source to ensure your target lead count is met.
+- **Smart Autocorrect**: Powered by the Google Suggest API, it automatically corrects typos in location strings to maximize yield from strict directories.
+- **Headless Playwright Integration**: Heavily guarded sources (like DuckDuckGo and IndiaMART) are parsed via a stealth headless Chromium browser.
+- **Deep Email Enrichment**: Crawls discovered websites to extract and validate emails.
+- **Auto-Export**: Automatically exports jobs into a clean, flat CSV in the `results/` folder, while maintaining a robust SQLite database in `data/leads.db`.
 
 ## Installation
 
+This is a Python package (not a Chrome Extension). It requires Python 3.10+.
+
+1. Clone the repository and navigate to the root directory.
+2. Create and activate a virtual environment:
 ```bash
-git clone https://github.com/YOUR_USERNAME/web-scraper.git
-cd web-scraper
 python -m venv .venv
-# Activate venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\Activate.ps1
+```
+3. Install dependencies:
+```bash
 pip install -r requirements.txt
-python -m playwright install chromium
+```
+4. Install Playwright browser binaries:
+```bash
+playwright install chromium
 ```
 
 ## Usage
 
+Start the interactive scraping wizard:
 ```bash
-python scraper.py scrape --query "gyms" --location "Noida" --target 300
+python scraper.py scrape
 ```
 
-Email-qualified leads:
+The wizard will prompt you for:
+- **Business Type**: The category (e.g., `electricians`, `gyms`).
+- **Location**: The city or area (e.g., `Mumbai`, `New York`).
+- **Target Count**: The number of unique leads you want.
+- **Email Requirement**: Whether the engine should discard leads that don't yield an email address.
+
+### Exporting Past Jobs
+You can export any past job to a CSV manually using its Job ID:
 ```bash
-python scraper.py scrape --query "real estate companies" --location "Greater Noida" --target 300 --require-email
+python scraper.py export <JOB_ID> --output custom_file.csv
 ```
 
-Select specific sources:
-```bash
-python scraper.py scrape --query "dentists" --location "Mumbai" --target 100 --sources google_maps
-```
-
-## Development
-
-To add a new source adapter:
-1. Create `src/scrapers/my_source.py`.
-2. Implement the `BaseScraper` interface.
-3. Register the scraper in `src/core/source_manager.py`.
-
-## Output
-
-Data is continuously saved to `leads.db` (SQLite).
-Export commands to CSV/JSON are planned for future iterations.
+## Project Structure
+- `src/scrapers/`: Individual scraping implementations (Google Maps, DuckDuckGo, etc.)
+- `src/enrichment/`: Website crawling and email extraction logic.
+- `src/processing/`: Normalization (phone numbers, domains) and deduplication.
+- `src/storage/`: SQLite database management.
+- `src/cli/`: Typer-based command-line interface.
+- `src/utils/`: Helpers like the Google Suggest autocorrect module.
+- `results/`: Output directory for generated CSV files.
+- `data/`: Storage location for the `leads.db` SQLite database.
