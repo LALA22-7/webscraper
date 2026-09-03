@@ -47,7 +47,7 @@ class DuckDuckGoScraper(BaseScraper):
         try:
             # Go to DDG
             await page.goto("https://duckduckgo.com/", wait_until="domcontentloaded")
-            searchbox = page.locator("input[name='q']").first
+            searchbox = page.locator("#searchbox_input, input[name='q'], input[type='text']").first
             await searchbox.fill(search_query)
             await searchbox.press("Enter")
             await page.wait_for_selector("article[data-testid='result']", timeout=15000)

@@ -25,7 +25,8 @@ class SulekhaScraper(BaseScraper):
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
             },
             timeout=15.0,
-            verify=False
+            verify=False,
+            follow_redirects=True
         )
         
     async def scrape(self, query: str, location: str, target: int) -> AsyncGenerator[SourceResult, None]:

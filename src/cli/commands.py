@@ -25,13 +25,12 @@ def scrape(
     """Start a new discovery and enrichment job."""
     from src.utils.autocorrect import autocorrect
     
-    # Auto-correct query and location to fix typos
-    corrected_query = autocorrect(query) if query else query
+    # Auto-correct ONLY the location. Queries (like "gyms") often get incorrectly 
+    # autocompleted to brands (like "Gymshark") by Google Suggest.
     corrected_location = autocorrect(location) if location else location
     
-    if corrected_query != query or corrected_location != location:
-        console.print(f"[bold yellow]✨ Auto-corrected search terms to:[/bold yellow] '{corrected_query}' in '{corrected_location}'")
-        query = corrected_query
+    if corrected_location != location:
+        console.print(f"[bold yellow]✨ Auto-corrected location to:[/bold yellow] '{corrected_location}'")
         location = corrected_location
         
     console.print(f"[bold blue]Starting Scrape Job[/bold blue]")
