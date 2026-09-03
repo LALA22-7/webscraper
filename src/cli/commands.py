@@ -50,7 +50,7 @@ def scrape(
             
             # Since the orchestrator logs to stdout, it might interfere with rich progress bar.
             # In a real app we'd pass a progress callback. Here we just await the job manager.
-            job = await job_manager.create_and_run_job(query, location, target, source_list)
+            job = await job_manager.create_and_run_job(query, location, target, source_list, require_email=require_email)
             
             progress.update(task_id, completed=job.discovered_count, description="Job completed")
             
