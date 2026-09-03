@@ -1,10 +1,9 @@
 from typing import List, Dict, Optional
 from src.scrapers.base import BaseScraper
-from src.scrapers.google_maps import GoogleMapsScraper
-from src.scrapers.justdial import JustdialScraper
+from src.scrapers import GoogleMapsScraper, JustdialScraper, SulekhaScraper, IndiaMARTScraper, TradeIndiaScraper, DuckDuckGoScraper
 
 class SourceManager:
-    """Manages the lifecycle and state of different scraping sources."""
+    """Manages the lifecycle, health, and availability of different source scrapers."""
     
     def __init__(self, headless: bool = True):
         self.headless = headless
@@ -13,6 +12,10 @@ class SourceManager:
         self._available_sources: Dict[str, BaseScraper] = {
             "google_maps": GoogleMapsScraper(headless=self.headless),
             "justdial": JustdialScraper(headless=self.headless),
+            "sulekha": SulekhaScraper(headless=self.headless),
+            "indiamart": IndiaMARTScraper(headless=self.headless),
+            "tradeindia": TradeIndiaScraper(headless=self.headless),
+            "duckduckgo": DuckDuckGoScraper(headless=self.headless),
         }
         
         # Priority map: lower number is higher priority
