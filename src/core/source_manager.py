@@ -13,7 +13,16 @@ class SourceManager:
         self._available_sources: Dict[str, BaseScraper] = {
             "google_maps": GoogleMapsScraper(headless=self.headless),
             "justdial": JustdialScraper(headless=self.headless),
-            # Add more sources here (e.g. sulekha, indiamart) as they are implemented
+        }
+        
+        # Priority map: lower number is higher priority
+        self.PRIORITIES = {
+            "google_maps": 10,
+            "justdial": 20,
+            "sulekha": 30,
+            "indiamart": 40,
+            "tradeindia": 50,
+            "duckduckgo": 100,
         }
         
         # Track enabled sources based on config
@@ -35,12 +44,13 @@ class SourceManager:
             ]
             
     def get_enabled_scrapers(self) -> List[BaseScraper]:
-        """Return instances of enabled and healthy scrapers."""
-        return [
+        """Return instances of enabled and healthy scrapers sorted by priority."""
+        scrapers = [
             self._available_sources[name] 
             for name in self._enabled_sources 
-            if self.source_health[name] in ("AVAILABLE", "ACTIVE")
+            if self.source_health.get(name) in ("AVAILABLE", "ACTIVE")
         ]
+        return sorted(scrapers, key=lambda s: self.PRIORITIES.get(s.name.lower().replace(" ", "_"), 999))
         
     def update_health(self, source_name: str, status: str) -> None:
         """Update the health status of a source."""

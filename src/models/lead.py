@@ -24,6 +24,8 @@ class Lead(BaseModel):
     # Nested email objects mapped by email address for uniqueness
     emails: Dict[str, 'Email'] = Field(default_factory=dict)
     
+    quality_score: float = 0.0
+    
     rating: Optional[float] = None
     review_count: Optional[int] = None
     
