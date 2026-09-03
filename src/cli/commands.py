@@ -65,6 +65,7 @@ def scrape(
             progress.update(task_id, completed=job.discovered_count, description="Job completed")
             
         console.print("\n[bold green]Job Completed[/bold green]")
+        console.print(f"Job ID: {job.id}")
         console.print(f"Discovered: {job.discovered_count}")
         console.print(f"Enriched: {job.enriched_count}")
         console.print(f"Emails found: {job.email_count}")
@@ -85,8 +86,23 @@ def sources():
 def resume(job_id: str):
     """Resume a previously paused or failed job."""
     console.print(f"[bold yellow]Resuming Job:[/bold yellow] {job_id}")
-    # Here we would load the job from DB and run job_manager again.
     console.print("[red]Resume functionality is wired to DB but not fully implemented in CLI yet.[/red]")
+    
+@app.command()
+def export(
+    job_id: str = typer.Argument(..., help="Job ID to export"),
+    format: str = typer.Option("csv", "--format", "-f", help="Output format (csv)"),
+    output: str = typer.Option("leads.csv", "--output", "-o", help="Output file path")
+):
+    """Export leads from a specific job."""
+    from src.storage.sqlite import SQLiteManager
+    db = SQLiteManager()
+    
+    if format.lower() == "csv":
+        db.export_csv(job_id, output)
+        console.print(f"[bold green]Exported job {job_id} to {output}[/bold green]")
+    else:
+        console.print(f"[bold red]Format {format} not supported yet.[/bold red]")
 
 if __name__ == "__main__":
     app()

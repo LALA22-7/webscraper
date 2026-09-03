@@ -147,3 +147,41 @@ class SQLiteManager:
                 ''', (lead.id, phone))
                 
             conn.commit()
+
+    def export_csv(self, job_id: str, output_path: str):
+        import csv
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            
+            # Join leads with their emails and phones
+            query = '''
+                SELECT 
+                    l.business_name, 
+                    l.category, 
+                    l.city, 
+                    l.website,
+                    l.rating,
+                    l.review_count,
+                    GROUP_CONCAT(DISTINCT e.email) as emails,
+                    GROUP_CONCAT(DISTINCT p.phone) as phones,
+                    l.source_names
+                FROM leads l
+                LEFT JOIN emails e ON l.id = e.lead_id
+                LEFT JOIN phones p ON l.id = p.lead_id
+                WHERE l.job_id = ?
+                GROUP BY l.id
+            '''
+            
+            cursor.execute(query, (job_id,))
+            rows = cursor.fetchall()
+            
+            if not rows:
+                print(f"No leads found for job {job_id}")
+                return
+                
+            with open(output_path, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                writer.writerow(['Business Name', 'Category', 'City', 'Website', 'Rating', 'Reviews', 'Emails', 'Phones', 'Sources'])
+                writer.writerows(rows)
+            
+            print(f"Exported {len(rows)} leads to {output_path}")
