@@ -14,11 +14,11 @@ console = Console()
 
 @app.command()
 def scrape(
-    query: str = typer.Option(..., "--query", "-q", help="Search query (e.g., 'gyms')"),
-    location: str = typer.Option(..., "--location", "-l", help="Location (e.g., 'Noida')"),
-    target: int = typer.Option(100, "--target", "-t", help="Target number of unique businesses"),
-    require_email: bool = typer.Option(False, "--require-email", help="Only export leads that contain emails"),
-    sources: str = typer.Option("google_maps,justdial", "--sources", help="Comma-separated list of sources to use"),
+    query: str = typer.Option(None, "--query", "-q", prompt="What type of businesses are you looking for? (e.g., gyms)", help="Search query"),
+    location: str = typer.Option(None, "--location", "-l", prompt="In which city or area? (e.g., Noida)", help="Location"),
+    target: int = typer.Option(50, "--target", "-t", prompt="How many businesses do you want to find?", help="Target number of unique businesses"),
+    require_email: bool = typer.Option(False, "--require-email", prompt="Do you only want leads that have emails? (y/n)", help="Only export leads that contain emails"),
+    sources: str = typer.Option("all", "--sources", help="Comma-separated list of sources, or 'all' for auto-fallback"),
     headless: bool = typer.Option(True, "--headless/--headed", help="Run browser in headless mode"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Validate and show planned job without running")
 ):
@@ -29,7 +29,10 @@ def scrape(
     console.print(f"Target: [green]{target}[/green]")
     console.print(f"Require Email: [green]{require_email}[/green]")
     
-    source_list = [s.strip() for s in sources.split(',')]
+    if sources.lower() == "all":
+        source_list = ["sulekha", "indiamart", "tradeindia", "duckduckgo", "google_maps", "justdial"]
+    else:
+        source_list = [s.strip() for s in sources.split(',')]
     
     if dry_run:
         console.print("\n[bold yellow]DRY RUN - Planned Job details:[/bold yellow]")
@@ -69,6 +72,16 @@ def scrape(
         console.print(f"Discovered: {job.discovered_count}")
         console.print(f"Enriched: {job.enriched_count}")
         console.print(f"Emails found: {job.email_count}")
+        
+        # Auto export
+        safe_query = query.replace(" ", "_").lower()
+        safe_loc = location.replace(" ", "_").lower()
+        output_file = f"leads_{safe_query}_{safe_loc}.csv"
+        
+        from src.storage.sqlite import SQLiteManager
+        db = SQLiteManager()
+        db.export_csv(job.id, output_file)
+        console.print(f"\n[bold magenta]Automatically exported results to {output_file}[/bold magenta]")
         
     asyncio.run(run())
 
