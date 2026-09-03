@@ -19,7 +19,8 @@ def scrape(
     target: int = typer.Option(100, "--target", "-t", help="Target number of unique businesses"),
     require_email: bool = typer.Option(False, "--require-email", help="Only export leads that contain emails"),
     sources: str = typer.Option("google_maps,justdial", "--sources", help="Comma-separated list of sources to use"),
-    headless: bool = typer.Option(True, "--headless/--headed", help="Run browser in headless mode")
+    headless: bool = typer.Option(True, "--headless/--headed", help="Run browser in headless mode"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Validate and show planned job without running")
 ):
     """Start a new discovery and enrichment job."""
     console.print(f"[bold blue]Starting Scrape Job[/bold blue]")
@@ -29,6 +30,15 @@ def scrape(
     console.print(f"Require Email: [green]{require_email}[/green]")
     
     source_list = [s.strip() for s in sources.split(',')]
+    
+    if dry_run:
+        console.print("\n[bold yellow]DRY RUN - Planned Job details:[/bold yellow]")
+        console.print("Planned sources:")
+        for s in source_list:
+            console.print(f"  - {s}")
+        console.print(f"\nTarget will be dynamically managed based on `require_email`: {require_email}")
+        return
+
     
     # Initialize components
     source_manager = SourceManager(headless=headless)
@@ -60,6 +70,23 @@ def scrape(
         console.print(f"Emails found: {job.email_count}")
         
     asyncio.run(run())
+
+
+
+@app.command()
+def sources():
+    """List available sources and their status."""
+    manager = SourceManager()
+    console.print("\n[bold]Available Sources[/bold]")
+    for name, scraper in manager._available_sources.items():
+        console.print(f"{scraper.name.ljust(20)} ENABLED (Priority {manager.PRIORITIES.get(name, 999)})")
+        
+@app.command()
+def resume(job_id: str):
+    """Resume a previously paused or failed job."""
+    console.print(f"[bold yellow]Resuming Job:[/bold yellow] {job_id}")
+    # Here we would load the job from DB and run job_manager again.
+    console.print("[red]Resume functionality is wired to DB but not fully implemented in CLI yet.[/red]")
 
 if __name__ == "__main__":
     app()
