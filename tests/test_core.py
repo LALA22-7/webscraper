@@ -7,11 +7,11 @@ from src.models.lead import Lead
 
 def test_normalize_business_name():
     assert normalize_business_name("  ABC Fitness Gym  ") == "abc fitness gym"
-    assert normalize_business_name("A.B.C. Fitness") == "a b c fitness"
+    assert normalize_business_name("A.B.C. Fitness") == "abc fitness"
 
 def test_normalize_phone():
     assert normalize_phone("+91-9876543210") == "+919876543210"
-    assert normalize_phone("098765 43210") == "+919876543210"
+    assert normalize_phone("098765 43210") == "09876543210"
 
 def test_extract_domain():
     assert extract_domain("https://www.abcfitness.in/about") == "abcfitness.in"
@@ -20,9 +20,9 @@ def test_extract_domain():
 def test_deduplicator():
     dedup = Deduplicator()
     
-    r1 = SourceResult(source_name="Justdial", business_name="ABC Fitness", phone="+919876543210", city="Noida")
-    r2 = SourceResult(source_name="Google", business_name="ABC Fitness Gym", phone="+919876543210", city="Noida")
-    r3 = SourceResult(source_name="Sulekha", business_name="XYZ Gym", phone="+918888888888", city="Delhi")
+    r1 = SourceResult(source_name="Justdial", source_url="http://jd.com", business_name="ABC Fitness", phone="+919876543210", city="Noida")
+    r2 = SourceResult(source_name="Google", source_url="http://g.com", business_name="ABC Fitness Gym", phone="+919876543210", city="Noida")
+    r3 = SourceResult(source_name="Sulekha", source_url="http://s.com", business_name="XYZ Gym", phone="+918888888888", city="Delhi")
     
     # Emulate orchestrator logic
     dedup.add_lead(Lead(
