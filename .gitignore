@@ -43,3 +43,10 @@ Thumbs.db
 # Secrets (do not commit API keys or credentials)
 .env.local
 *.pem
+
+# Databases and Outputs
+*.db
+results/*
+data/*
+!results/.gitkeep
+!data/.gitkeep
