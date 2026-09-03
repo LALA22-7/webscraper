@@ -1,1 +1,5 @@
 playwright
+pydantic>=2.0.0
+typer
+rich
+httpx
