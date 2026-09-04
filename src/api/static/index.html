@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lead Discovery Engine V3</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 15px; margin-bottom: 20px; }
+        .card { background: #1e293b; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .metric-box { background: #0f172a; padding: 15px; border-radius: 6px; text-align: center; border: 1px solid #334155;}
+        .metric-value { font-size: 24px; font-weight: bold; color: #38bdf8; margin-top: 5px; }
+        button { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button.stop { background: #ef4444; }
+        input { padding: 8px; border-radius: 4px; border: 1px solid #334155; background: #0f172a; color: white; margin-right: 10px;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Lead Discovery Engine V3</h2>
+            <div>
+                <span id="status-badge" style="background:#22c55e; padding:5px 10px; border-radius:20px; font-size:14px; font-weight:bold;">IDLE</span>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3>Control Panel</h3>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                <input type="text" id="query" placeholder="Business Query (e.g. restaurants)">
+                <input type="text" id="location" placeholder="Region (e.g. Switzerland)">
+                
+                <select id="stop-condition" onchange="toggleConditionInput()" style="padding: 8px; border-radius: 4px; border: 1px solid #334155; background: #0f172a; color: white;">
+                    <option value="duration">Run by Duration</option>
+                    <option value="target">Run by Target Count</option>
+                </select>
+                
+                <input type="number" id="condition-val" placeholder="Duration (seconds)" value="3600">
+                
+                <button onclick="startJob()">Start Discovery</button>
+                <button class="stop" onclick="stopJob()">Stop Job</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Live Dashboard</h3>
+            <div class="metrics">
+                <div class="metric-box">
+                    <div>Discovered Businesses</div>
+                    <div class="metric-value" id="val-discovered">0</div>
+                </div>
+                <div class="metric-box">
+                    <div>Enriched Websites</div>
+                    <div class="metric-value" id="val-enriched">0</div>
+                </div>
+                <div class="metric-box">
+                    <div>Emails Extracted</div>
+                    <div class="metric-value" id="val-emails">0</div>
+                </div>
+                <div class="metric-box">
+                    <div>Runtime</div>
+                    <div class="metric-value" id="val-runtime">00:00:00</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function fetchStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                
+                if (data.status === 'STOPPED' || !data.job_id) {
+                    document.getElementById('status-badge').innerText = 'IDLE';
+                    document.getElementById('status-badge').style.background = '#64748b';
+                } else {
+                    document.getElementById('status-badge').innerText = data.status.toUpperCase();
+                    document.getElementById('status-badge').style.background = data.status === 'running' ? '#22c55e' : '#f59e0b';
+                    
+                    document.getElementById('val-discovered').innerText = data.discovered;
+                    document.getElementById('val-enriched').innerText = data.enriched;
+                    document.getElementById('val-emails').innerText = data.emails;
+                    
+                    const d = Number(data.runtime_seconds);
+                    const h = Math.floor(d / 3600);
+                    const m = Math.floor(d % 3600 / 60);
+                    const s = Math.floor(d % 3600 % 60);
+                    document.getElementById('val-runtime').innerText = 
+                        ('0' + h).slice(-2) + ":" + ('0' + m).slice(-2) + ":" + ('0' + s).slice(-2);
+                }
+            } catch (e) {
+                console.error("Failed to fetch status", e);
+            }
+        }
+        
+        function toggleConditionInput() {
+            const cond = document.getElementById('stop-condition').value;
+            const input = document.getElementById('condition-val');
+            if (cond === 'duration') {
+                input.placeholder = "Duration (seconds)";
+                input.value = "3600";
+            } else {
+                input.placeholder = "Target (number of leads)";
+                input.value = "500";
+            }
+        }
+        
+        async function startJob() {
+            const q = document.getElementById('query').value;
+            const l = document.getElementById('location').value;
+            const cond = document.getElementById('stop-condition').value;
+            const val = document.getElementById('condition-val').value;
+            
+            let url = `/api/start?query=${q}&location=${l}`;
+            if (cond === 'duration') {
+                url += `&duration_seconds=${val}`;
+            } else {
+                url += `&target=${val}`;
+            }
+            
+            await fetch(url, {method: 'POST'});
+            fetchStatus();
+        }
+        
+        async function stopJob() {
+            await fetch('/api/stop', {method: 'POST'});
+            fetchStatus();
+        }
+
+        setInterval(fetchStatus, 2000);
+    </script>
+</body>
+</html>

@@ -1,3 +1,4 @@
-from .sqlite import SQLiteManager
+from .postgres import PostgresManager
+from .sheets_sync import GoogleSheetsSyncManager
 
-__all__ = ["SQLiteManager"]
+__all__ = ["PostgresManager", "GoogleSheetsSyncManager"]

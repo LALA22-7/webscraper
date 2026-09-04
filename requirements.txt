@@ -5,3 +5,7 @@ rich
 httpx
 beautifulsoup4
 pytest
+fastapi
+uvicorn
+asyncpg
+pytest-asyncio

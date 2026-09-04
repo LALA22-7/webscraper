@@ -1,14 +1,15 @@
 import asyncio
 from typing import AsyncGenerator
 from urllib.parse import urlparse
+import os
 
 from playwright.async_api import async_playwright, Page, Browser, BrowserContext, TimeoutError as PlaywrightTimeoutError
 
 from src.models.source_result import SourceResult
 from src.scrapers.base import BaseScraper
 
-class DuckDuckGoScraper(BaseScraper):
-    """Fallback search discovery engine using DuckDuckGo HTML version via Playwright."""
+class OrganicSearchScraper(BaseScraper):
+    """Organic search discovery engine using DuckDuckGo HTML version via Playwright."""
     
     def __init__(self, headless: bool = True):
         self.headless = headless
@@ -18,12 +19,23 @@ class DuckDuckGoScraper(BaseScraper):
         
     @property
     def name(self) -> str:
-        return "Search Discovery"
+        return "Organic Search"
         
     async def initialize(self) -> None:
         self._playwright = await async_playwright().start()
+        proxy_settings = None
+        proxy_url = os.getenv("PROXY_URL")
+        if proxy_url:
+            proxy_settings = {"server": proxy_url}
+            proxy_user = os.getenv("PROXY_USER")
+            proxy_pass = os.getenv("PROXY_PASS")
+            if proxy_user and proxy_pass:
+                proxy_settings["username"] = proxy_user
+                proxy_settings["password"] = proxy_pass
+                
         self._browser = await self._playwright.chromium.launch(
             headless=self.headless,
+            proxy=proxy_settings,
             args=[
                 '--disable-blink-features=AutomationControlled',
                 '--disable-dev-shm-usage',

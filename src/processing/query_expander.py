@@ -21,9 +21,9 @@ class QueryExpander:
     
     @classmethod
     def expand_query(cls, query: str) -> List[str]:
-        """Return a list of expanded queries, starting with the original."""
+        """Return a list of expanded queries using modifiers and alphabet permutations."""
         q_lower = query.lower().strip()
-        variations = [query]
+        variations = [q_lower]
         
         # Add predefined expansions if matched
         if q_lower in cls.EXPANSIONS:
@@ -31,11 +31,16 @@ class QueryExpander:
                 if variant.lower() != q_lower:
                     variations.append(variant)
                     
+        # Add generic modifiers
+        modifiers = ["best", "top", "affordable", "local", "expert"]
+        for mod in modifiers:
+            variations.append(f"{mod} {q_lower}")
+            
         return variations
         
     @classmethod
     def expand_location(cls, location: str) -> List[str]:
-        """Return a list of expanded locations, starting with the original."""
+        """Return a list of expanded locations."""
         l_lower = location.lower().strip()
         variations = [location]
         
@@ -48,13 +53,25 @@ class QueryExpander:
         
     @classmethod
     def generate_combinations(cls, query: str, location: str) -> List[tuple[str, str]]:
-        """Return all pairs of (query, location) variants."""
+        """Return massive list of (query, location) variants using the alphabet suffix hack."""
         queries = cls.expand_query(query)
         locations = cls.expand_location(location)
         
         combinations = []
+        import string
+        
         for loc in locations:
             for q in queries:
+                # 1. Exact match
                 combinations.append((q, loc))
+                
+                # 2. Alphabet suffix hack (forces search engine to dig deep into long-tail results)
+                for letter in string.ascii_lowercase:
+                    combinations.append((f"{q} {letter}", loc))
+                    
+                # 3. Double alphabet suffix hack for extreme depth
+                for letter1 in ['a', 'b', 'c', 'e', 'm', 'p', 's', 't']: # common starting letters
+                    for letter2 in string.ascii_lowercase:
+                        combinations.append((f"{q} {letter1}{letter2}", loc))
                 
         return combinations

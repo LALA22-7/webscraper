@@ -1,40 +1,31 @@
 from typing import List, Dict, Optional
+from datetime import datetime, timedelta
 from src.scrapers.base import BaseScraper
-from src.scrapers import GoogleMapsScraper, JustdialScraper, SulekhaScraper, IndiaMARTScraper, TradeIndiaScraper, DuckDuckGoScraper
+from src.scrapers.organic_search import OrganicSearchScraper
 
 class SourceManager:
-    """Manages the lifecycle, health, and availability of different source scrapers."""
+    """Manages the lifecycle, health, and availability of the organic search scraper."""
     
     def __init__(self, headless: bool = True):
         self.headless = headless
         
         # Available sources mapping
         self._available_sources: Dict[str, BaseScraper] = {
-            "google_maps": GoogleMapsScraper(headless=self.headless),
-            "justdial": JustdialScraper(headless=self.headless),
-            "sulekha": SulekhaScraper(headless=self.headless),
-            "indiamart": IndiaMARTScraper(headless=self.headless),
-            "tradeindia": TradeIndiaScraper(headless=self.headless),
-            "duckduckgo": DuckDuckGoScraper(headless=self.headless),
+            "organic_search": OrganicSearchScraper(headless=self.headless),
         }
         
-        # Priority map: lower number is higher priority
         self.PRIORITIES = {
-            "google_maps": 10,
-            "justdial": 20,
-            "sulekha": 30,
-            "indiamart": 40,
-            "tradeindia": 50,
-            "duckduckgo": 100,
+            "organic_search": 10,
         }
         
-        # Track enabled sources based on config
         self._enabled_sources: List[str] = []
         
-        # Track health status for each source
-        # Statuses: AVAILABLE, ACTIVE, EXHAUSTED, RATE_LIMITED, BLOCKED, FAILED
         self.source_health: Dict[str, str] = {
             name: "AVAILABLE" for name in self._available_sources
+        }
+        
+        self.source_cooldowns: Dict[str, Optional[datetime]] = {
+            name: None for name in self._available_sources
         }
         
     def configure_sources(self, requested_sources: Optional[List[str]] = None) -> None:
@@ -48,20 +39,38 @@ class SourceManager:
             
     def get_enabled_scrapers(self) -> List[BaseScraper]:
         """Return instances of enabled and healthy scrapers sorted by priority."""
-        scrapers = [
-            self._available_sources[name] 
-            for name in self._enabled_sources 
-            if self.source_health.get(name) in ("AVAILABLE", "ACTIVE")
-        ]
+        scrapers = []
+        for name in self._enabled_sources:
+            health = self.source_health.get(name)
+            cooldown = self.source_cooldowns.get(name)
+            
+            if cooldown and datetime.utcnow() < cooldown:
+                continue
+                
+            if health in ("AVAILABLE", "ACTIVE"):
+                scrapers.append(self._available_sources[name])
+                
         return sorted(scrapers, key=lambda s: self.PRIORITIES.get(s.name.lower().replace(" ", "_"), 999))
         
-    def update_health(self, source_name: str, status: str) -> None:
+    def get_scraper(self, name: str) -> Optional[BaseScraper]:
+        key = name.lower().replace(" ", "_")
+        scraper = self._available_sources.get(key)
+        if not scraper:
+            return None
+            
+        cooldown = self.source_cooldowns.get(key)
+        if cooldown and datetime.utcnow() < cooldown:
+            return None
+            
+        return scraper
+        
+    def update_health(self, source_name: str, status: str, cooldown_minutes: int = 0) -> None:
         """Update the health status of a source."""
-        # E.g., if a CAPTCHA is hit, mark as BLOCKED so the orchestrator skips it
-        # Map source.name (e.g. "Google Maps") back to key ("google_maps")
         for key, scraper in self._available_sources.items():
             if scraper.name == source_name:
                 self.source_health[key] = status
+                if cooldown_minutes > 0:
+                    self.source_cooldowns[key] = datetime.utcnow() + timedelta(minutes=cooldown_minutes)
                 break
                 
     async def initialize_all(self) -> None:

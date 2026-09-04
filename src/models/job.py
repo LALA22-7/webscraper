@@ -6,7 +6,8 @@ class Job(BaseModel):
     id: str
     query: str
     location: str
-    target: int
+    target: Optional[int] = None
+    duration_seconds: Optional[int] = None
     sources: List[str]
     
     discovered_count: int = 0
