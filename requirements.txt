@@ -9,3 +9,8 @@ fastapi
 uvicorn
 asyncpg
 pytest-asyncio
+aiodns
+gspread
+gspread-asyncio
+oauth2client
+disposable-email-domains

@@ -57,26 +57,34 @@ class OrganicSearchScraper(BaseScraper):
         
         page = await self._context.new_page()
         try:
-            # Go to DDG
-            await page.goto("https://duckduckgo.com/", wait_until="domcontentloaded")
-            searchbox = page.locator("#searchbox_input, input[name='q'], input[type='text']").first
-            await searchbox.fill(search_query)
-            await searchbox.press("Enter")
-            await page.wait_for_selector("article[data-testid='result']", timeout=15000)
+            # Go directly to search URL
+            import urllib.parse
+            encoded_query = urllib.parse.quote_plus(search_query)
+            search_url = f"https://html.duckduckgo.com/html/?q={encoded_query}"
+            await page.goto(search_url, wait_until="domcontentloaded")
+            
+            try:
+                await page.wait_for_selector("article[data-testid='result']", timeout=15000)
+            except PlaywrightTimeoutError:
+                # Sometimes DDG serves a different layout when direct linked, try fallback selector
+                await page.wait_for_selector(".result", timeout=10000)
             
             while yielded_count < target:
-                results = await page.locator("article[data-testid='result']").all()
+                results = await page.locator("article[data-testid='result'], .result").all()
                 for result in results:
                     if yielded_count >= target:
                         break
                         
-                    link = result.locator("a[data-testid='result-title-a']").first
+                    link = result.locator("a[data-testid='result-title-a'], a.result__url").first
                     if not await link.count():
                         continue
                         
                     href = await link.get_attribute("href")
                     if not href or "duckduckgo.com" in href:
-                        continue
+                        # Sometimes href is in a different attribute on older DDG versions
+                        href = await link.get_attribute("data-expanded-url") or href
+                        if not href:
+                            continue
                         
                     if href.startswith("//"):
                         href = "https:" + href
@@ -109,7 +117,7 @@ class OrganicSearchScraper(BaseScraper):
                     
                 # Wait for more results to load
                 try:
-                    await page.wait_for_selector("article[data-testid='result']", timeout=10000)
+                    await page.wait_for_selector("article[data-testid='result'], .result", timeout=10000)
                 except PlaywrightTimeoutError:
                     break
                     

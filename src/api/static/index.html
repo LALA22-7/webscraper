@@ -3,134 +3,328 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lead Discovery Engine V3</title>
+    <title>Lead Discovery Engine V4.2</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 15px; margin-bottom: 20px; }
-        .card { background: #1e293b; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
-        .metric-box { background: #0f172a; padding: 15px; border-radius: 6px; text-align: center; border: 1px solid #334155;}
-        .metric-value { font-size: 24px; font-weight: bold; color: #38bdf8; margin-top: 5px; }
-        button { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        button.stop { background: #ef4444; }
-        input { padding: 8px; border-radius: 4px; border: 1px solid #334155; background: #0f172a; color: white; margin-right: 10px;}
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0a0f1e; color: #e2e8f0; min-height: 100vh; }
+
+        .topbar { background: linear-gradient(90deg, #1a1f3a 0%, #0f1729 100%);
+                  border-bottom: 1px solid #1e3a5f; padding: 14px 28px;
+                  display: flex; align-items: center; justify-content: space-between; }
+        .topbar h1 { font-size: 16px; font-weight: 600; color: #7dd3fc; letter-spacing: 0.5px; }
+        .topbar .sub { font-size: 11px; color: #475569; margin-top: 2px; }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+        .card { background: #111827; border: 1px solid #1e293b; border-radius: 10px;
+                padding: 20px; margin-bottom: 20px; }
+        .card h3 { font-size: 13px; font-weight: 600; color: #94a3b8;
+                   text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+
+        /* Controls */
+        .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+        input, select { background: #0a0f1e; border: 1px solid #334155; color: #e2e8f0;
+                        padding: 9px 12px; border-radius: 6px; font-size: 13px; outline: none; }
+        input:focus, select:focus { border-color: #3b82f6; }
+        input[type=text] { width: 190px; }
+        input[type=number] { width: 110px; }
+
+        .btn { padding: 9px 18px; border-radius: 6px; font-size: 13px; font-weight: 600;
+               border: none; cursor: pointer; transition: opacity .15s; }
+        .btn:hover { opacity: .85; }
+        .btn-start  { background: #2563eb; color: white; }
+        .btn-stop   { background: #dc2626; color: white; }
+        .btn-export { background: #059669; color: white; }
+
+        /* Metrics */
+        .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+        @media(max-width:700px){ .metrics { grid-template-columns: repeat(2,1fr); } }
+        .metric { background: #0a0f1e; border: 1px solid #1e293b; border-radius: 8px;
+                  padding: 16px; text-align: center; }
+        .metric .label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: .8px; }
+        .metric .val   { font-size: 30px; font-weight: 700; color: #38bdf8; margin-top: 4px; line-height: 1; }
+        .metric.green .val { color: #4ade80; }
+        .metric.yellow .val{ color: #fbbf24; }
+        .metric.purple .val{ color: #a78bfa; }
+
+        /* Status badge */
+        .badge { display: inline-block; padding: 4px 12px; border-radius: 20px;
+                 font-size: 12px; font-weight: 700; letter-spacing: .5px; }
+        .badge-idle      { background:#1e293b; color:#64748b; }
+        .badge-running   { background:#14532d; color:#4ade80; }
+        .badge-completed { background:#1e3a5f; color:#38bdf8; }
+        .badge-stopped   { background:#451a03; color:#fb923c; }
+
+        /* Results table */
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        thead th { background: #0a0f1e; color: #64748b; font-size: 11px; text-transform: uppercase;
+                   letter-spacing: .8px; padding: 10px 12px; text-align: left;
+                   border-bottom: 1px solid #1e293b; }
+        tbody td { padding: 10px 12px; border-bottom: 1px solid #111827; vertical-align: top; }
+        tbody tr:hover td { background: #0f172a; }
+        .empty { text-align: center; color: #334155; padding: 40px; font-size: 13px; }
+
+        /* Email pills */
+        .email-wrap { display: flex; flex-wrap: wrap; gap: 4px; }
+        .pill { display: inline-flex; align-items: center; gap: 4px;
+                font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+        .pill-valid      { background: #14532d; color: #86efac; }
+        .pill-risky      { background: #422006; color: #fdba74; }
+        .pill-invalid    { background: #3f1010; color: #fca5a5; }
+        .pill-disposable { background: #1e1b4b; color: #a5b4fc; }
+        .pill-role       { opacity: .7; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+        .dot-valid { background: #4ade80; }
+        .dot-risky { background: #fb923c; }
+
+        a { color: #38bdf8; text-decoration: none; font-size: 12px; }
+        a:hover { text-decoration: underline; }
+        .num { color: #475569; }
+        .sheets-on { color: #4ade80; font-size: 11px; margin-left: 8px; }
+        #job-id-display { color: #64748b; font-size: 11px; margin-left: 10px; font-family: monospace; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h2>Lead Discovery Engine V3</h2>
-            <div>
-                <span id="status-badge" style="background:#22c55e; padding:5px 10px; border-radius:20px; font-size:14px; font-weight:bold;">IDLE</span>
-            </div>
-        </div>
-        
-        <div class="card">
-            <h3>Control Panel</h3>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-                <input type="text" id="query" placeholder="Business Query (e.g. restaurants)">
-                <input type="text" id="location" placeholder="Region (e.g. Switzerland)">
-                
-                <select id="stop-condition" onchange="toggleConditionInput()" style="padding: 8px; border-radius: 4px; border: 1px solid #334155; background: #0f172a; color: white;">
-                    <option value="duration">Run by Duration</option>
-                    <option value="target">Run by Target Count</option>
-                </select>
-                
-                <input type="number" id="condition-val" placeholder="Duration (seconds)" value="3600">
-                
-                <button onclick="startJob()">Start Discovery</button>
-                <button class="stop" onclick="stopJob()">Stop Job</button>
-            </div>
-        </div>
 
-        <div class="card">
-            <h3>Live Dashboard</h3>
-            <div class="metrics">
-                <div class="metric-box">
-                    <div>Discovered Businesses</div>
-                    <div class="metric-value" id="val-discovered">0</div>
-                </div>
-                <div class="metric-box">
-                    <div>Enriched Websites</div>
-                    <div class="metric-value" id="val-enriched">0</div>
-                </div>
-                <div class="metric-box">
-                    <div>Emails Extracted</div>
-                    <div class="metric-value" id="val-emails">0</div>
-                </div>
-                <div class="metric-box">
-                    <div>Runtime</div>
-                    <div class="metric-value" id="val-runtime">00:00:00</div>
-                </div>
+<div class="topbar">
+    <div>
+        <div class="topbar h1">⚡ Lead Discovery Engine <span style="color:#475569">V4.2</span><span id="job-id-display"></span></div>
+        <div class="sub">Multi-tenant server ready for extreme concurrency</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+        <span id="sheets-indicator" style="display:none;" class="sheets-indicator">
+            📊 Sheets Syncing
+        </span>
+        <span id="status-badge" class="badge badge-idle">IDLE</span>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- Controls -->
+    <div class="card">
+        <h3>Job Configuration</h3>
+        <div class="controls">
+            <input type="text"   id="query"    placeholder="Query  (e.g. dental clinics)" value="hotels">
+            <input type="text"   id="location" placeholder="Location  (e.g. London)"      value="switzerland">
+            <select id="mode">
+                <option value="duration">⏱ Run by Duration (seconds)</option>
+                <option value="target">🎯 Run by Email Target</option>
+            </select>
+            <input type="number" id="mode-val" value="60" min="10">
+            <button class="btn btn-start"  onclick="startJob()">▶ Start Discovery</button>
+            <button class="btn btn-stop"   onclick="stopJob()">■ Stop</button>
+            <button class="btn btn-export" onclick="exportCSV()">⬇ Export CSV</button>
+        </div>
+    </div>
+
+    <!-- Metrics -->
+    <div class="card">
+        <h3>Live Metrics</h3>
+        <div class="metrics">
+            <div class="metric">
+                <div class="label">Discovered</div>
+                <div class="val" id="m-discovered">0</div>
+            </div>
+            <div class="metric green">
+                <div class="label">Crawled</div>
+                <div class="val" id="m-crawled">0</div>
+            </div>
+            <div class="metric yellow">
+                <div class="label">Valid Emails</div>
+                <div class="val" id="m-emails">0</div>
+            </div>
+            <div class="metric purple">
+                <div class="label">Runtime</div>
+                <div class="val" id="m-runtime">00:00</div>
             </div>
         </div>
     </div>
 
-    <script>
-        async function fetchStatus() {
-            try {
-                const res = await fetch('/api/status');
-                const data = await res.json();
-                
-                if (data.status === 'STOPPED' || !data.job_id) {
-                    document.getElementById('status-badge').innerText = 'IDLE';
-                    document.getElementById('status-badge').style.background = '#64748b';
-                } else {
-                    document.getElementById('status-badge').innerText = data.status.toUpperCase();
-                    document.getElementById('status-badge').style.background = data.status === 'running' ? '#22c55e' : '#f59e0b';
-                    
-                    document.getElementById('val-discovered').innerText = data.discovered;
-                    document.getElementById('val-enriched').innerText = data.enriched;
-                    document.getElementById('val-emails').innerText = data.emails;
-                    
-                    const d = Number(data.runtime_seconds);
-                    const h = Math.floor(d / 3600);
-                    const m = Math.floor(d % 3600 / 60);
-                    const s = Math.floor(d % 3600 % 60);
-                    document.getElementById('val-runtime').innerText = 
-                        ('0' + h).slice(-2) + ":" + ('0' + m).slice(-2) + ":" + ('0' + s).slice(-2);
-                }
-            } catch (e) {
-                console.error("Failed to fetch status", e);
-            }
-        }
-        
-        function toggleConditionInput() {
-            const cond = document.getElementById('stop-condition').value;
-            const input = document.getElementById('condition-val');
-            if (cond === 'duration') {
-                input.placeholder = "Duration (seconds)";
-                input.value = "3600";
-            } else {
-                input.placeholder = "Target (number of leads)";
-                input.value = "500";
-            }
-        }
-        
-        async function startJob() {
-            const q = document.getElementById('query').value;
-            const l = document.getElementById('location').value;
-            const cond = document.getElementById('stop-condition').value;
-            const val = document.getElementById('condition-val').value;
-            
-            let url = `/api/start?query=${q}&location=${l}`;
-            if (cond === 'duration') {
-                url += `&duration_seconds=${val}`;
-            } else {
-                url += `&target=${val}`;
-            }
-            
-            await fetch(url, {method: 'POST'});
-            fetchStatus();
-        }
-        
-        async function stopJob() {
-            await fetch('/api/stop', {method: 'POST'});
-            fetchStatus();
-        }
+    <!-- Results -->
+    <div class="card">
+        <h3>
+            Results
+            <span id="results-count" style="font-size:12px;color:#475569;font-weight:400;margin-left:6px;text-transform:none;letter-spacing:0;"></span>
+        </h3>
+        <div id="table-wrap">
+            <div class="empty">No results yet — start a job above.</div>
+        </div>
+    </div>
 
-        setInterval(fetchStatus, 2000);
-    </script>
+</div>
+
+<script>
+let allLeads = [];
+
+// Session Storage keeps track of the Job ID for THIS specific tab
+function getJobId() {
+    return sessionStorage.getItem('currentJobId');
+}
+function setJobId(id) {
+    sessionStorage.setItem('currentJobId', id);
+    if(id) {
+        document.getElementById('job-id-display').textContent = `[${id}]`;
+    } else {
+        document.getElementById('job-id-display').textContent = '';
+    }
+}
+
+// Initialize on page load
+if (getJobId()) {
+    document.getElementById('job-id-display').textContent = `[${getJobId()}]`;
+}
+
+// ── Status polling ────────────────────────────────────────────────────────
+async function fetchStatus() {
+    const jId = getJobId();
+    if (!jId) {
+        setBadge('IDLE', 'idle');
+        return;
+    }
+    
+    try {
+        const r = await fetch(`/api/status?job_id=${jId}`);
+        const d = await r.json();
+        if (d.status === 'STOPPED' || !d.job_id) {
+            setBadge('IDLE', 'idle');
+        } else {
+            setBadge(d.status.toUpperCase(), d.status);
+            document.getElementById('m-discovered').textContent = d.discovered || 0;
+            document.getElementById('m-crawled').textContent    = d.enriched || 0;
+            document.getElementById('m-emails').textContent     = d.emails || 0;
+            const sec = Math.floor(Number(d.runtime_seconds || 0));
+            const m   = Math.floor(sec / 60);
+            const s   = sec % 60;
+            document.getElementById('m-runtime').textContent =
+                String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+        }
+    } catch(e) {}
+}
+
+function setBadge(text, state) {
+    const b = document.getElementById('status-badge');
+    b.textContent = text;
+    b.className = 'badge badge-' + state;
+}
+
+// ── Results polling ───────────────────────────────────────────────────────
+async function fetchResults() {
+    const jId = getJobId();
+    if (!jId) return;
+
+    try {
+        const r = await fetch(`/api/results?job_id=${jId}`);
+        const d = await r.json();
+        if (!d.leads) return;
+        allLeads = d.leads;
+        renderTable(allLeads);
+        const total = allLeads.reduce((s,l) => s + l.emails.length, 0);
+        document.getElementById('results-count').textContent =
+            allLeads.length ? `${allLeads.length} businesses · ${total} emails` : '';
+    } catch(e) {}
+}
+
+function renderTable(leads) {
+    const wrap = document.getElementById('table-wrap');
+    if (!leads.length) {
+        wrap.innerHTML = '<div class="empty">No results yet — start a job above.</div>';
+        return;
+    }
+    let html = `<table>
+        <thead><tr>
+            <th>#</th>
+            <th>Business</th>
+            <th>Website</th>
+            <th>Emails &amp; Validation</th>
+        </tr></thead><tbody>`;
+    leads.forEach((lead, i) => {
+        const emailsHtml = lead.emails.map(e => {
+            const cls  = `pill pill-${e.status}${e.role_based ? ' pill-role' : ''}`;
+            const dot  = e.status === 'valid' ? '<span class="dot dot-valid"></span>'
+                       : e.status === 'risky' ? '<span class="dot dot-risky"></span>' : '';
+            const role = e.role_based ? ' · role' : '';
+            return `<span class="${cls}">${dot}${e.email} <span style="opacity:.6">${e.status}${role}</span></span>`;
+        }).join('') || '<span style="color:#334155;font-size:11px">no valid emails</span>';
+
+        html += `<tr>
+            <td class="num">${i + 1}</td>
+            <td style="font-weight:500">${escHtml(lead.business_name)}</td>
+            <td><a href="${lead.website}" target="_blank">${lead.website}</a></td>
+            <td><div class="email-wrap">${emailsHtml}</div></td>
+        </tr>`;
+    });
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
+}
+
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Controls ──────────────────────────────────────────────────────────────
+document.getElementById('mode').addEventListener('change', () => {
+    const v = document.getElementById('mode-val');
+    if (document.getElementById('mode').value === 'duration') {
+        v.placeholder = 'Seconds'; v.value = '60';
+    } else {
+        v.placeholder = 'Email target'; v.value = '50';
+    }
+});
+
+async function startJob() {
+    const q   = encodeURIComponent(document.getElementById('query').value.trim());
+    const loc = encodeURIComponent(document.getElementById('location').value.trim());
+    const mode = document.getElementById('mode').value;
+    const val  = document.getElementById('mode-val').value;
+    let url = `/api/start?query=${q}&location=${loc}`;
+    url += mode === 'duration' ? `&duration_seconds=${val}` : `&target=${val}`;
+    
+    // Reset local view for new job
+    allLeads = [];
+    renderTable([]);
+    
+    const resp = await fetch(url, {method: 'POST'});
+    const d    = await resp.json();
+    
+    if(d.job_id) {
+        setJobId(d.job_id);
+    }
+    
+    if (d.sheets) {
+        document.getElementById('sheets-indicator').style.display = 'inline';
+    }
+    fetchStatus();
+}
+
+async function stopJob() {
+    const jId = getJobId();
+    if (!jId) return;
+    
+    await fetch(`/api/stop?job_id=${jId}`, {method:'POST'});
+    document.getElementById('sheets-indicator').style.display = 'none';
+    fetchStatus();
+    fetchResults();
+}
+
+function exportCSV() {
+    if (!allLeads.length) { alert('No results to export.'); return; }
+    let csv = 'Business Name,Website,Email,Status,Score,Role-Based\n';
+    allLeads.forEach(lead => {
+        lead.emails.forEach(e => {
+            csv += `"${lead.business_name}","${lead.website}","${e.email}","${e.status}","${e.score}","${e.role_based ? 'Yes' : 'No'}"\n`;
+        });
+    });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+    a.download = `leads_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+}
+
+setInterval(fetchStatus,  2000);
+setInterval(fetchResults, 3000);
+fetchStatus();
+fetchResults();
+</script>
 </body>
 </html>
