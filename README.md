@@ -9,8 +9,8 @@ Unlike simple scrapers that rely on a single directory, this tool aggregates lea
 - **Block Resilience**: If one source times out or triggers a CAPTCHA, the orchestrator seamlessly falls back to the next source to ensure your target lead count is met.
 - **Smart Autocorrect**: Powered by the Google Suggest API, it automatically corrects typos in location strings to maximize yield from strict directories.
 - **Headless Playwright Integration**: Heavily guarded sources (like DuckDuckGo and IndiaMART) are parsed via a stealth headless Chromium browser.
-- **Deep Email Enrichment**: Crawls discovered websites to extract and validate emails.
-- **Auto-Export**: Automatically exports jobs into a clean, flat CSV in the `results/` folder, while maintaining a robust SQLite database in `data/leads.db`.
+- **Deep Email Enrichment**: Crawls discovered websites to extract and validate emails, checking main pages and `mailto:` links.
+- **Auto-Export & SQLite Storage**: Automatically exports jobs into a clean, flat CSV in the `results/` folder, while maintaining a robust normalized SQLite database in `data/leads.db`.
 
 ## Installation
 
@@ -51,10 +51,12 @@ python scraper.py export <JOB_ID> --output custom_file.csv
 ```
 
 ## Project Structure
-- `src/scrapers/`: Individual scraping implementations (Google Maps, DuckDuckGo, etc.)
-- `src/enrichment/`: Website crawling and email extraction logic.
-- `src/processing/`: Normalization (phone numbers, domains) and deduplication.
-- `src/storage/`: SQLite database management.
+- `src/core/`: Core orchestration logic (`orchestrator.py`, `job_manager.py`, `source_manager.py`).
+- `src/models/`: Data models for Jobs, Leads, Emails, and Source Results.
+- `src/scrapers/`: Individual scraping implementations (Google Maps, DuckDuckGo, etc.).
+- `src/enrichment/`: Website crawling (`website_crawler.py`) and email extraction logic (`email_extractor.py`).
+- `src/processing/`: Normalization (phone numbers, domains), deduplication, and query expansion.
+- `src/storage/`: SQLite database management (`sqlite.py`).
 - `src/cli/`: Typer-based command-line interface.
 - `src/utils/`: Helpers like the Google Suggest autocorrect module.
 - `results/`: Output directory for generated CSV files.
