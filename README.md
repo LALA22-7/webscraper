@@ -58,6 +58,5 @@ python scraper.py export <JOB_ID> --output custom_file.csv
 - `src/processing/`: Normalization (phone numbers, domains), deduplication, and query expansion.
 - `src/storage/`: SQLite database management (`sqlite.py`).
 - `src/cli/`: Typer-based command-line interface.
-- `src/utils/`: Helpers like the Google Suggest autocorrect module.
 - `results/`: Output directory for generated CSV files.
 - `data/`: Storage location for the `leads.db` SQLite database.

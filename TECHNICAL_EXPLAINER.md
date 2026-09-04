@@ -36,6 +36,3 @@ The application utilizes typed data models located in `src/models/` (`Lead`, `Jo
 
 ### 5. Export
 Upon job completion, or when triggered manually via the CLI, `SQLiteManager.export_csv()` uses SQL `LEFT JOIN` and `GROUP_CONCAT` to flatten the relational data (aggregating multiple emails and phones) into a single, user-friendly CSV file output to the `results/` directory.
-
-### 6. Utilities
-- **Autocorrect**: The `src/utils/autocorrect.py` module hooks into the Google Suggest API to silently fix typos in the user's location string. This prevents 0-yield runs on strict directory websites like TradeIndia that don't have internal spellcheckers.
